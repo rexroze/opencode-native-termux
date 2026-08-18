@@ -337,5 +337,11 @@ setup_shell
 info "installed:"
 info "  binary   $INSTALL_DIR/opencode.bin ($(du -h "$INSTALL_DIR/opencode.bin" 2>/dev/null | cut -f1))"
 info "  launcher $INSTALL_DIR/opencode"
-info "run 'opencode' (open a new shell if it isn't on PATH), then use /connect inside the TUI to add your AI provider."
+case "${SHELL_NAME:-}" in
+  bash) info "shell refresh:  source ~/.bashrc   (or just open a new Termux session)" ;;
+  zsh)  info "shell refresh:  source ~/.zshrc   (or just open a new Termux session)" ;;
+  fish) info "shell refresh:  exec fish   (or just open a new Termux session)" ;;
+  *)    info "shell refresh:  open a new Termux session" ;;
+esac
+info "then run 'opencode' and use /connect inside the TUI to add your AI provider."
 "$INSTALL_DIR/opencode" --version || warn "launcher works but --version check failed"
