@@ -1,6 +1,6 @@
 {
   "name": "opencode-native-termux",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Install OpenCode natively on Termux (Android) — no proot, no containers. Official opencode binaries bridged to Termux's native glibc.",
   "license": "MIT",
   "author": "John Rex Daves Rosani <rexroze>",
