@@ -69,7 +69,10 @@ sh install.sh --seed ./.opencode    # or any dir that contains plugins
 
 OpenCode ships as a glibc binary; Termux runs on bionic. This project
 bridges the two with Termux's native glibc package — official upstream
-binaries, nothing patched, nothing emulated. Full technical deep dive:
+binaries, nothing patched, nothing emulated. The launcher runs the binary
+through a loader symlink named `opencode`, so agent runtimes (herdr, ...)
+that identify agents by kernel process name see `opencode` — not a glibc
+loader. Full technical deep dive:
 [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).
 
 ### Links

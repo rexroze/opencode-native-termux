@@ -183,11 +183,17 @@ seed_plugin_runtime() {  # $1 = dir, $2 = version (default: latest)
 # Termux has no /lib, so we invoke it through the glibc loader directly,
 # pointing at Termux's glibc tree. We must also unset LD_PRELOAD: Termux
 # preloads libtermux-exec (a bionic library) which crashes the glibc loader.
+# The loader is exec'd via a symlink named "opencode" so the kernel process
+# name (comm) stays "opencode" — agent runtimes like herdr identify the
+# agent in a pane by process name.
 write_wrapper() {
   local wrapper="$INSTALL_DIR/opencode"
+  local runtime_dir="$INSTALL_DIR/opencode-runtime"
+  mkdir -p "$runtime_dir"
+  ln -sf "$TERMUX_PREFIX/glibc/lib/ld-linux-aarch64.so.1" "$runtime_dir/opencode"
   cat > "$wrapper" <<EOF
 #!/bin/sh
-exec env -u LD_PRELOAD "$TERMUX_PREFIX/glibc/lib/ld-linux-aarch64.so.1" \\
+exec env -u LD_PRELOAD "$runtime_dir/opencode" \\
   --library-path "$TERMUX_PREFIX/glibc/lib" \\
   "$INSTALL_DIR/opencode.bin" "\$@"
 EOF
@@ -332,6 +338,7 @@ do_uninstall() {
         "$TERMUX_PREFIX/etc/bash_completion.d/opencode" \
         "$HOME/.config/fish/completions/opencode.fish" \
         "$HOME/.zsh/completions/opencode.zsh"
+  rm -rf "$INSTALL_DIR/opencode-runtime"
   info "removed opencode binary, launcher, and generated completion files"
   info "PATH/completion lines left in shell configs (remove manually if desired);"
   info "glibc package left in place (shared by other glibc programs); remove with: pkg uninstall glibc"
