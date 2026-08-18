@@ -23,11 +23,16 @@
 
 ### Installation
 
-```bash
-# One line
-curl -fsSL https://raw.githubusercontent.com/rexroze/opencode-native-termux/main/install.sh | sh
+**One line — zero prerequisites:**
 
-# npm
+```bash
+curl -fsSL https://raw.githubusercontent.com/rexroze/opencode-native-termux/main/install.sh | sh
+```
+
+**Or via npm** (needs nodejs first):
+
+```bash
+pkg install nodejs-lts
 npm i -g opencode-native-termux
 ```
 
