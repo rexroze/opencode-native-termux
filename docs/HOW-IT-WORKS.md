@@ -14,10 +14,16 @@ binary through that loader:
 
 ```sh
 #!/bin/sh
-exec env -u LD_PRELOAD "$PREFIX/glibc/lib/ld-linux-aarch64.so.1" \
+exec env -u LD_PRELOAD "$INSTALL_DIR/opencode-runtime/opencode" \
   --library-path "$PREFIX/glibc/lib" \
   "$INSTALL_DIR/opencode.bin" "$@"
 ```
+
+Note the loader is a *symlink named `opencode`* (install.sh creates it as
+`$INSTALL_DIR/opencode-runtime/opencode`). The kernel names the process
+after the exec'd file, so this keeps `comm=opencode` instead of
+`ld-linux-aarch64.so.1` — agent runtimes like herdr identify the agent in
+a pane by process name, the same way they match `pi` for pi.
 
 ## The two traps we hit (and solved)
 
@@ -42,7 +48,9 @@ verified against the sha256 digest GitHub publishes for each release asset.
 | Path | What it is |
 |---|---|
 | `~/bin/opencode.bin` | The official `opencode-linux-arm64` release binary (unmodified) |
-| `~/bin/opencode` | 3-line POSIX sh launcher bridging bionic → glibc |
+| `~/bin/opencode` | POSIX sh launcher bridging bionic → glibc |
+| `~/bin/opencode-runtime/opencode` | Symlink to the glibc loader, named so the process shows up as `opencode` |
+| `~/.config/opencode/{package.json,package-lock.json,node_modules}` | Pre-seeded `@opencode-ai/plugin` runtime — opencode ≥ 1.15 installs it itself (bundled npm) whenever a plugin exists, and that in-process install deadlocks on Termux, leaving a blank TUI. Pre-seeding makes it skip its own installer. |
 | PATH setup | Added to your login shell's config — auto-detected: bash → `~/.bashrc`, zsh → `~/.zshrc`, fish → `fish_add_path` |
 | Tab-completions | For your login shell: bash → `$PREFIX/etc/bash_completion.d/opencode` (yargs-generated), zsh → `~/.zsh/completions/opencode.zsh` via `bashcompinit`, fish → static set at `~/.config/fish/completions/opencode.fish` |
 | `glibc` package | Termux's native glibc 2.44 + dynamic loader (shared with other glibc apps) |

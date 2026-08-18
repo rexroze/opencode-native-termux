@@ -29,13 +29,12 @@ source ~/.zsh/completions/opencode.zsh
 
 ```fish
 fish_add_path ~/bin
-# completions:
-opencode completion fish > ~/.config/fish/completions/opencode.fish
 ```
 
 (opencode's `completion` command only emits bash scripts, so fish uses a
-static completion set installed by the installer — covering subcommands
-and all flags including `--auto`.)
+static completion set — covering subcommands and all flags including
+`--auto` — that the installer writes to
+`~/.config/fish/completions/opencode.fish`.)
 
 Detection missed your shell? Re-run with `OPENCODE_TERMUX_SHELL=bash|zsh|fish`,
 or skip it entirely with `OPENCODE_TERMUX_NO_PATH=1`.
@@ -96,12 +95,23 @@ x86_64, so it *should* work — but it's untested. Patches welcome.
 
 No.
 
+## Does herdr detect opencode?
+
+Yes. The launcher execs the glibc loader via a symlink named `opencode`, so
+the kernel process name is `opencode` — herdr (and similar runtimes that
+identify agents by process name) picks it up in the pane exactly like it
+picks up `pi`. With herdr's opencode integration installed (`herdr
+integration install opencode`), the plugin then reports session and state
+on top. The same symlink also keeps `opencode upgrade`-style tooling and
+`ps` output sane.
+
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
 | `sh: .../opencode: not found` on first run | Not on PATH — open a new shell or run `fish_add_path ~/bin` (bash: add the export from Shell setup) |
 | `invalid ELF header` | An `LD_PRELOAD` got through — run `env -u LD_PRELOAD ~/bin/opencode`; if it works, your launcher is stale (re-run installer) |
+| Blank screen when the TUI should render (often right after installing a plugin) | opencode ≥ 1.15 installs its own plugin runtime and its in-process installer deadlocks on Termux. Re-run the installer, or fix in place: `sh install.sh --seed ~/.config/opencode` (project-local `.opencode` dirs: `sh install.sh --seed ./.opencode`) |
 | Segfault at startup | The binary was patched (e.g. `glibc-runner --configure`) — restore it: re-run installer |
 | `cannot execute: required file not found` | The binary is the *musl* variant — re-run installer (it downloads the glibc build) |
 

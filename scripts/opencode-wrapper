@@ -7,6 +7,11 @@
 # glibc package ships a real loader + libc under $PREFIX/glibc, so we
 # invoke the binary through it directly. No proot, no patching.
 #
+# The loader is exec'd via a symlink named "opencode" (install.sh creates
+# it as $INSTALL_DIR/opencode-runtime/opencode) so the kernel process name
+# stays "opencode" — agent runtimes like herdr identify the agent running
+# in a pane by process name.
+#
 # Two things that MUST be right:
 #   1. LD_PRELOAD must be unset — Termux preloads libtermux-exec (a bionic
 #      library) which crashes the glibc loader ("libc.so: invalid ELF header").
@@ -15,6 +20,6 @@
 #      is rewritten. Loading it via the loader avoids any patching.
 #
 # install.sh generates this file with the real paths baked in.
-exec env -u LD_PRELOAD /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1 \
+exec env -u LD_PRELOAD /data/data/com.termux/files/home/bin/opencode-runtime/opencode \
   --library-path /data/data/com.termux/files/usr/glibc/lib \
   /data/data/com.termux/files/home/bin/opencode.bin "$@"
