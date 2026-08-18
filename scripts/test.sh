@@ -24,7 +24,7 @@ run_case() {  # $1 = shell name, $2 = SHELL value
   mkdir -p "$bin"
   cp "$BIN" "$bin/opencode.bin"
 
-  HOME="$home" SHELL="$2" OPENCODE_TERMUX_SHELL="$name" \
+  HOME="$home" SHELL="$2" OPENCODE_TERMUX_SHELL="$name" OPENCODE_TERMUX_NO_SEED=1 \
     OPENCODE_TERMUX_INSTALL_DIR="$bin" \
     sh install.sh --no-download >/dev/null 2>&1 || {
       echo "FAIL($name): installer exited nonzero"; rm -rf "$home"; exit 1
@@ -60,8 +60,25 @@ run_case() {  # $1 = shell name, $2 = SHELL value
   echo "PASS: $name"
 }
 
+seed_case() {
+  command -v npm >/dev/null 2>&1 || { echo "SKIP: seed case (npm not installed)"; return 0; }
+  home="$(mktemp -d)"
+  HOME="$home" sh install.sh --seed "$home/cfg" >/dev/null 2>&1 || {
+    echo "FAIL(seed): installer exited nonzero"; rm -rf "$home"; exit 1
+  }
+  [ -d "$home/cfg/node_modules/@opencode-ai/plugin" ] || {
+    echo "FAIL(seed): node_modules/@opencode-ai/plugin missing"; rm -rf "$home"; exit 1
+  }
+  grep -q '"@opencode-ai/plugin"' "$home/cfg/package-lock.json" || {
+    echo "FAIL(seed): package-lock.json missing plugin entry"; rm -rf "$home"; exit 1
+  }
+  rm -rf "$home"
+  echo "PASS: seed"
+}
+
 run_case bash /data/data/com.termux/files/usr/bin/bash
 run_case zsh  /data/data/com.termux/files/usr/bin/zsh
 run_case fish /data/data/com.termux/files/usr/bin/fish
+seed_case
 
 echo "all shell cases passed"

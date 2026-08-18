@@ -20,6 +20,8 @@ VERSION="${OPENCODE_VERSION:-latest}"
 INSTALL_DIR="${OPENCODE_TERMUX_INSTALL_DIR:-$HOME/bin}"
 NO_DOWNLOAD=0
 DO_UNINSTALL=0
+SEED_ONLY=0
+SEED_DIR=""
 
 ARCH="$(uname -m 2>/dev/null || echo unknown)"
 TERMUX_PREFIX="${PREFIX:-}"
@@ -42,6 +44,8 @@ Usage:
   sh install.sh --no-download  only (re)create the launcher wrapper, keep the
                                existing binary in place (repair mode)
   sh install.sh --uninstall    remove the wrapper and binary
+  sh install.sh --seed DIR     seed the plugin runtime into DIR (fixes a blank
+                              TUI when that dir contains opencode plugins)
 
 Env:
   OPENCODE_VERSION              version to install (default: latest)
@@ -53,6 +57,13 @@ Downloads are verified against the sha256 digest GitHub publishes for the
 release asset.
 Shell setup: a PATH line and tab-completions are added for your login shell
 (bash: ~/.bashrc, zsh: ~/.zshrc, fish: ~/.config/fish/config.fish).
+
+Blank TUI fix: opencode >= 1.15 tries to install its own plugin runtime
+(@opencode-ai/plugin) with a bundled npm whenever a plugin exists; that
+in-process install deadlocks on Termux and opencode waits on it forever,
+leaving a blank screen. install.sh pre-seeds the runtime with a real npm
+install so opencode never needs its own. Project dirs with .opencode
+plugins can be fixed the same way: sh install.sh --seed ./.opencode
 Note: opencode's `completion` command only emits bash scripts; fish gets a
 static completion set instead (see completions_fish).
 EOF
@@ -136,6 +147,36 @@ verify_checksum() {  # $1 = tarball path
   printf '%s  %s\n' "$hex" "$1" | sha256sum -c - >/dev/null 2>&1 \
     || die "sha256 checksum mismatch — download corrupt or tampered; retry"
   info "sha256 checksum verified"
+}
+
+# opencode >= 1.15 runs a background `npm install @opencode-ai/plugin` for the
+# config dir whenever any plugin exists, and blocks on it before showing the
+# TUI. Its bundled in-process installer (arborist) deadlocks under Termux's
+# glibc, so the TUI stays blank. Pre-seeding the dir with a real npm install
+# (package.json + package-lock.json + node_modules) makes opencode see the
+# dependency as already installed and skip its own installer entirely.
+seed_plugin_runtime() {  # $1 = dir, $2 = version (default: latest)
+  local dir="$1" ver="${2:-latest}"
+  [ "${OPENCODE_TERMUX_NO_SEED:-0}" = "1" ] && return 0
+  [ -n "$dir" ] || return 1
+  ver="${ver#v}"
+  command -v npm >/dev/null 2>&1 || {
+    warn "npm not found -- skipping plugin runtime seed ($dir)."
+    warn "if opencode shows a blank screen once plugins exist, install nodejs and run:"
+    warn "  sh install.sh --seed $dir"
+    return 0
+  }
+  if [ -f "$dir/package-lock.json" ] && grep -q '"@opencode-ai/plugin"' "$dir/package-lock.json"; then
+    return 0  # already seeded
+  fi
+  mkdir -p "$dir"
+  info "seeding plugin runtime in $dir (@opencode-ai/plugin@$ver)..."
+  if npm install --prefix "$dir" --no-audit --no-fund --ignore-scripts "@opencode-ai/plugin@$ver" >/dev/null 2>&1; then
+    info "plugin runtime ready ($dir)"
+  else
+    warn "npm install failed in $dir -- opencode may stay blank while plugins are installed there."
+    warn "retry manually: npm install --prefix \"$dir\" @opencode-ai/plugin@$ver"
+  fi
 }
 
 # The launcher. The official binary is glibc-linked and expects /lib;
@@ -307,6 +348,8 @@ parse_args() {
       -h|--help)        usage ;;
       --uninstall)      DO_UNINSTALL=1 ;;
       --no-download)    NO_DOWNLOAD=1 ;;
+      --seed)           shift; [ "$#" -gt 0 ] || die "--seed requires a directory argument"; SEED_ONLY=1; SEED_DIR="$1" ;;
+      --seed=*)         SEED_ONLY=1; SEED_DIR="${1#*=}" ;;
       -v|--version)     shift; [ "$#" -gt 0 ] || die "--version requires an argument, e.g. -v v1.18.18"; VERSION="$1" ;;
       -v=*|--version=*) VERSION="${1#*=}" ;;
       -v*)              VERSION="${1#-v}" ;;
@@ -320,6 +363,10 @@ parse_args "$@"
 check_termux
 check_arch
 [ "$DO_UNINSTALL" = "1" ] && do_uninstall
+if [ "$SEED_ONLY" = "1" ]; then
+  seed_plugin_runtime "$SEED_DIR" "$VERSION"
+  exit 0
+fi
 
 mkdir -p "$INSTALL_DIR"
 
@@ -333,6 +380,11 @@ fi
 
 write_wrapper
 setup_shell
+
+# Pre-seed the global config dir so opencode's own (deadlocking on Termux)
+# plugin-runtime install is never triggered. Project .opencode dirs with
+# plugins can be fixed with: sh install.sh --seed ./.opencode
+seed_plugin_runtime "${XDG_CONFIG_HOME:-$HOME/.config}/opencode" "$VERSION"
 
 info "installed:"
 info "  binary   $INSTALL_DIR/opencode.bin ($(du -h "$INSTALL_DIR/opencode.bin" 2>/dev/null | cut -f1))"

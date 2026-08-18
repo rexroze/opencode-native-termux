@@ -51,6 +51,20 @@ Run `/connect` inside the TUI to add your AI provider — or start with the
 free models that ship out of the box. Upgrades, shell setup, and
 troubleshooting: [docs/FAQ.md](docs/FAQ.md).
 
+### Blank screen? (plugins)
+
+If the TUI shows a blank screen, it's almost always an opencode plugin in
+`~/.config/opencode/plugins/`. opencode >= 1.15 tries to install its own
+plugin runtime (`@opencode-ai/plugin`) with a bundled npm when plugins
+exist — that in-process install deadlocks on Termux, and opencode waits on
+it forever. The installer already pre-seeds the runtime with a real `npm
+install`, so this should not happen after installing/upgrading. If it does,
+or you added a project-local plugin (`.opencode/plugin.js`), fix it with:
+
+```bash
+sh install.sh --seed ./.opencode    # or any dir that contains plugins
+```
+
 ### How it works
 
 OpenCode ships as a glibc binary; Termux runs on bionic. This project
