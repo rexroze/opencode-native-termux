@@ -51,8 +51,10 @@ Env:
 
 Downloads are verified against the sha256 digest GitHub publishes for the
 release asset.
-Shell setup: PATH line + tab-completions are added for your login shell
+Shell setup: a PATH line and tab-completions are added for your login shell
 (bash: ~/.bashrc, zsh: ~/.zshrc, fish: ~/.config/fish/config.fish).
+Note: opencode's `completion` command only emits bash scripts; fish gets a
+static completion set instead (see completions_fish).
 EOF
   exit 0
 }
@@ -186,26 +188,89 @@ add_path_fish() {
   fi
 }
 
-completions_file() {  # $1 = shell, $2 = output path
-  local out="$2"
+completions_file() {  # $1 = output path for the bash-style yargs script
+  local out="$1"
   mkdir -p "$(dirname "$out")"
-  if "$INSTALL_DIR/opencode" completion "$1" > "$out" 2>/dev/null && [ -s "$out" ]; then
-    info "installed $1 completions ($out)"
+  if "$INSTALL_DIR/opencode" completion bash > "$out" 2>/dev/null && [ -s "$out" ]; then
+    info "installed bash completions ($out)"
   else
     rm -f "$out"
-    warn "could not generate $1 completions (opencode completion $1 failed)"
+    warn "could not generate bash completions (opencode completion failed)"
   fi
 }
 
+# opencode's `completion` command only emits a bash script (yargs). zsh can
+# run it via bashcompinit; fish cannot, so fish gets a static set.
 completions_zsh() {
-  local d f rc
-  d="$HOME/.zsh/completions"
-  f="$d/_opencode"
+  local f rc
+  f="$HOME/.zsh/completions/opencode.zsh"
   rc="$HOME/.zshrc"
-  completions_file zsh "$f"
-  if [ -f "$f" ] && [ -f "$rc" ] && ! grep -qF "$d" "$rc"; then
-    printf '\n# opencode-native-termux\nfpath=(%s $fpath)\nautoload -Uz compinit && compinit\n' "$d" >> "$rc"
+  mkdir -p "$(dirname "$f")"
+  if "$INSTALL_DIR/opencode" completion bash > "$f" 2>/dev/null && [ -s "$f" ]; then
+    info "installed zsh completions ($f)"
+  else
+    rm -f "$f"
+    warn "could not generate zsh completions (opencode completion failed)"
   fi
+  if [ -f "$f" ] && [ -f "$rc" ] && ! grep -qF "bashcompinit" "$rc"; then
+    printf '\n# opencode-native-termux (zsh completions)\nautoload -Uz bashcompinit && bashcompinit\nsource %s\n' "$f" >> "$rc"
+    info "enabled zsh completions in ~/.zshrc (bashcompinit)"
+  fi
+}
+
+completions_fish() {
+  local f="$HOME/.config/fish/completions/opencode.fish"
+  mkdir -p "$(dirname "$f")"
+  cat > "$f" <<'FISH_EOF'
+# opencode completions for fish
+# (opencode's `completion` command only emits bash scripts, so this is a
+# static set covering opencode's subcommands and flags.)
+
+set -l oc_commands acp attach completion db debug export github import mcp models plugin pr providers run serve session stats upgrade web
+
+complete -c opencode -f
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a acp        -d "start ACP (Agent Client Protocol) server"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a attach     -d "attach to a running opencode server"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a completion -d "generate shell completion script"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a db         -d "database tools"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a debug      -d "debugging and troubleshooting tools"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a export     -d "export session data as JSON"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a github     -d "manage GitHub agent"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a import     -d "import session data from JSON file or URL"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a mcp        -d "manage MCP (Model Context Protocol) servers"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a models     -d "list all available models"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a plugin     -d "install plugin and update config"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a pr         -d "fetch and checkout a GitHub PR branch, then run opencode"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a providers  -d "manage AI providers and credentials"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a run        -d "run opencode with a message"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a serve      -d "starts a headless opencode server"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a session    -d "manage sessions"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a stats      -d "show token usage and cost statistics"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a upgrade    -d "upgrade opencode to the latest or a specific version"
+complete -c opencode -n "not __fish_seen_subcommand_from $oc_commands" -a web        -d "start opencode server and open web interface"
+
+complete -c opencode -s h -l help        -d "show help"
+complete -c opencode -s v -l version     -d "show version number"
+complete -c opencode -l print-logs       -d "print logs to stderr"
+complete -c opencode -l log-level        -d "log level" -a "DEBUG INFO WARN ERROR"
+complete -c opencode -l pure             -d "run without external plugins"
+complete -c opencode -l port             -d "port to listen on"
+complete -c opencode -l hostname         -d "hostname to listen on"
+complete -c opencode -l mdns             -d "enable mDNS service discovery"
+complete -c opencode -l mdns-domain      -d "custom domain name for mDNS service"
+complete -c opencode -l cors             -d "additional domains to allow for CORS"
+complete -c opencode -s m -l model       -d "model to use (provider/model)"
+complete -c opencode -s c -l continue    -d "continue the last session"
+complete -c opencode -s s -l session     -d "session id to continue"
+complete -c opencode -l fork             -d "fork the session when continuing"
+complete -c opencode -l prompt           -d "prompt to use"
+complete -c opencode -l agent            -d "agent to use"
+complete -c opencode -l auto             -d "auto-approve permissions not explicitly denied (dangerous!)"
+complete -c opencode -l mini             -d "start the minimal interactive interface"
+complete -c opencode -l no-replay        -d "disable mini session history replay"
+complete -c opencode -l replay-limit     -d "cap visible mini replay to the newest N messages"
+FISH_EOF
+  info "installed fish completions ($f)"
 }
 
 setup_shell() {
@@ -213,11 +278,11 @@ setup_shell() {
   detect_shell
   case "$SHELL_NAME" in
     bash) add_path_line "$HOME/.bashrc" "~/.bashrc";
-          completions_file bash "$TERMUX_PREFIX/etc/bash_completion.d/opencode" ;;
+          completions_file "$TERMUX_PREFIX/etc/bash_completion.d/opencode" ;;
     zsh)  add_path_line "$HOME/.zshrc" "~/.zshrc";
           completions_zsh ;;
     fish) add_path_fish;
-          completions_file fish "$HOME/.config/fish/completions/opencode.fish" ;;
+          completions_fish ;;
   esac
 }
 
@@ -225,7 +290,7 @@ do_uninstall() {
   rm -f "$INSTALL_DIR/opencode" "$INSTALL_DIR/opencode.bin" \
         "$TERMUX_PREFIX/etc/bash_completion.d/opencode" \
         "$HOME/.config/fish/completions/opencode.fish" \
-        "$HOME/.zsh/completions/_opencode"
+        "$HOME/.zsh/completions/opencode.zsh"
   info "removed opencode binary, launcher, and generated completion files"
   info "PATH/completion lines left in shell configs (remove manually if desired);"
   info "glibc package left in place (shared by other glibc programs); remove with: pkg uninstall glibc"

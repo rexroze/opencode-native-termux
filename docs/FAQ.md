@@ -17,10 +17,13 @@ opencode completion bash > /data/data/com.termux/files/usr/etc/bash_completion.d
 
 ```zsh
 export PATH="$HOME/bin:$PATH"
-fpath=(~/.zsh/completions $fpath) && autoload -Uz compinit && compinit
+autoload -Uz bashcompinit && bashcompinit
 # completions:
-opencode completion zsh > ~/.zsh/completions/_opencode
+opencode completion bash > ~/.zsh/completions/opencode.zsh
+source ~/.zsh/completions/opencode.zsh
 ```
+
+(opencode's completion script is bash-generated; zsh runs it via `bashcompinit`.)
 
 **fish** — add to `~/.config/fish/config.fish`:
 
@@ -29,6 +32,10 @@ fish_add_path ~/bin
 # completions:
 opencode completion fish > ~/.config/fish/completions/opencode.fish
 ```
+
+(opencode's `completion` command only emits bash scripts, so fish uses a
+static completion set installed by the installer — covering subcommands
+and all flags including `--auto`.)
 
 Detection missed your shell? Re-run with `OPENCODE_TERMUX_SHELL=bash|zsh|fish`,
 or skip it entirely with `OPENCODE_TERMUX_NO_PATH=1`.

@@ -36,11 +36,24 @@ run_case() {  # $1 = shell name, $2 = SHELL value
 
   case "$name" in
     bash) grep -q "PATH=\"$bin" "$home/.bashrc" \
-            || { echo "FAIL(bash): no PATH line in .bashrc"; rm -rf "$home"; exit 1; } ;;
+            || { echo "FAIL(bash): no PATH line in .bashrc"; rm -rf "$home"; exit 1; }
+          [ -s "$PREFIX/etc/bash_completion.d/opencode" ] \
+            || { echo "FAIL(bash): completions missing/empty"; rm -rf "$home"; exit 1; } ;;
     zsh)  grep -q "PATH=\"$bin" "$home/.zshrc" \
-            || { echo "FAIL(zsh): no PATH line in .zshrc"; rm -rf "$home"; exit 1; } ;;
+            || { echo "FAIL(zsh): no PATH line in .zshrc"; rm -rf "$home"; exit 1; }
+          [ -s "$home/.zsh/completions/opencode.zsh" ] \
+            || { echo "FAIL(zsh): completions missing/empty"; rm -rf "$home"; exit 1; }
+          grep -q "bashcompinit" "$home/.zshrc" \
+            || { echo "FAIL(zsh): no bashcompinit in .zshrc"; rm -rf "$home"; exit 1; } ;;
     fish) grep -q "$bin" "$home/.config/fish/config.fish" \
-            || { echo "FAIL(fish): no PATH line in fish config"; rm -rf "$home"; exit 1; } ;;
+            || { echo "FAIL(fish): no PATH line in fish config"; rm -rf "$home"; exit 1; }
+          grep -q "complete -c opencode" "$home/.config/fish/completions/opencode.fish" \
+            || { echo "FAIL(fish): completions missing"; rm -rf "$home"; exit 1; }
+          grep -q "COMP_WORDS" "$home/.config/fish/completions/opencode.fish" \
+            && { echo "FAIL(fish): completions contain bash code (COMP_WORDS)"; rm -rf "$home"; exit 1; }
+          command -v fish >/dev/null 2>&1 \
+            && fish --no-config -c "source \"$home/.config/fish/completions/opencode.fish\"" >/dev/null 2>&1 \
+            || { [ -z "$(command -v fish)" ] || { echo "FAIL(fish): completions fail to source"; rm -rf "$home"; exit 1; }; } ;;
   esac
 
   rm -rf "$home"

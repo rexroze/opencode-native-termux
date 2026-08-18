@@ -44,7 +44,7 @@ verified against the sha256 digest GitHub publishes for each release asset.
 | `~/bin/opencode.bin` | The official `opencode-linux-arm64` release binary (unmodified) |
 | `~/bin/opencode` | 3-line POSIX sh launcher bridging bionic → glibc |
 | PATH setup | Added to your login shell's config — auto-detected: bash → `~/.bashrc`, zsh → `~/.zshrc`, fish → `fish_add_path` |
-| Tab-completions | For your login shell: bash → `$PREFIX/etc/bash_completion.d/opencode`, zsh → `~/.zsh/completions/_opencode`, fish → `~/.config/fish/completions/opencode.fish` |
+| Tab-completions | For your login shell: bash → `$PREFIX/etc/bash_completion.d/opencode` (yargs-generated), zsh → `~/.zsh/completions/opencode.zsh` via `bashcompinit`, fish → static set at `~/.config/fish/completions/opencode.fish` |
 | `glibc` package | Termux's native glibc 2.44 + dynamic loader (shared with other glibc apps) |
 
 ## Requirements
