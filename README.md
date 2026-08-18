@@ -15,6 +15,12 @@
 
 ---
 
+### Requirements
+
+- **Termux** from [F-Droid](https://f-droid.org/) (Play Store builds are outdated)
+- **aarch64 (ARM64)** device — the only architecture OpenCode ships a Linux build for
+- An internet connection for the ~60 MB download
+
 ### Installation
 
 ```bash
