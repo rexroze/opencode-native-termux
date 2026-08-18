@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# opencode-termux launcher (reference copy).
+#
+# The official opencode binary is glibc-linked and expects the loader at
+# /lib/ld-linux-aarch64.so.1, which Android does not provide. Termux's
+# glibc package ships a real loader + libc under $PREFIX/glibc, so we
+# invoke the binary through it directly. No proot, no patching.
+#
+# Two things that MUST be right:
+#   1. LD_PRELOAD must be unset — Termux preloads libtermux-exec (a bionic
+#      library) which crashes the glibc loader ("libc.so: invalid ELF header").
+#   2. The binary must NOT be patched (e.g. with patchelf to rewrite .interp).
+#      The bun-compiled 183MB binary segfaults at startup when its ELF layout
+#      is rewritten. Loading it via the loader avoids any patching.
+#
+# install.sh generates this file with the real paths baked in.
+exec env -u LD_PRELOAD /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1 \
+  --library-path /data/data/com.termux/files/usr/glibc/lib \
+  /data/data/com.termux/files/home/bin/opencode.bin "$@"

@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+#
+# opencode-native-termux — npm bin shim.
+#
+# Makes `opencode` work right after `npm install -g opencode-native-termux`:
+# the first invocation runs the real installer (downloads the official
+# opencode binary, verifies its sha256, installs glibc, wires up your
+# shell); every later invocation passes straight through to the installed
+# launcher.
+set -eu
+
+BIN_DIR="${OPENCODE_TERMUX_INSTALL_DIR:-$HOME/bin}"
+LAUNCHER="$BIN_DIR/opencode"
+
+if [ ! -x "$LAUNCHER" ]; then
+  # npm installs bins as symlinks — resolve back to the real package dir
+  SELF="$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
+  INSTALLER="$(dirname "$(dirname "$SELF")")/install.sh"
+  if [ ! -f "$INSTALLER" ]; then
+    echo "opencode-native-termux: installer not found at $INSTALLER" >&2
+    exit 1
+  fi
+  echo "opencode-native-termux: first run — installing opencode (one-time download)…"
+  sh "$INSTALLER" || exit $?
+fi
+
+exec "$LAUNCHER" "$@"

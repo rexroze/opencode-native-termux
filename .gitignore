@@ -1,0 +1,11 @@
+# downloaded artifacts
+*.tar.gz
+*.zip
+
+# npm
+node_modules/
+
+# editor
+.DS_Store
+*.swp
+*.tgz

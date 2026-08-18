@@ -1,0 +1,38 @@
+{
+  "name": "opencode-native-termux",
+  "version": "0.1.0",
+  "description": "Install OpenCode natively on Termux (Android) — no proot, no containers. Official opencode binaries bridged to Termux's native glibc.",
+  "license": "MIT",
+  "author": "John Rex Daves Rosani <rexroze>",
+  "bin": {
+    "opencode": "bin/opencode",
+    "opencode-termux": "install.sh"
+  },
+  "files": [
+    "bin/",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "termux",
+    "opencode",
+    "android",
+    "ai",
+    "coding-agent",
+    "glibc",
+    "native",
+    "proot-free"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rexroze/opencode-native-termux.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rexroze/opencode-native-termux/issues"
+  },
+  "homepage": "https://github.com/rexroze/opencode-native-termux#readme",
+  "scripts": {
+    "test": "sh -n install.sh && sh -n scripts/test.sh && sh scripts/test.sh"
+  }
+}
